@@ -1,0 +1,25 @@
+{
+  "name": "free-game",
+  "version": "1.0.0",
+  "description": "a web application for free deals of pc games ",
+  "keywords": [
+    "free",
+    "game"
+  ],
+  "license": "ISC",
+  "author": "yashsidam",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node  index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "mongoose": "^9.12.0",
+    "node-cron": "^4.6.0",
+    "pg": "^8.23.1"
+  }
+}
