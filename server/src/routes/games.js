@@ -24,3 +24,32 @@ const games = [
         price: 0
     }
 ]
+
+//get all games
+router.get("/",(req,res) => {
+    res.json({
+        success : true,
+        count : games.length,
+        data : games
+    })
+})
+
+router.get("/:id", (req,res) => {
+    const game = games.find(
+        (g) => g.id === Number(req.params.id)
+    )
+    if(!game){
+        return res.status(404).json({
+            success : false ,
+            message : "Game Not Found"
+        })
+    }
+
+    res.json({
+        success:true,
+        data : game
+    })
+})
+
+export default router;
+
