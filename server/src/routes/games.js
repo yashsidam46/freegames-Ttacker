@@ -27,13 +27,34 @@ const games = [
 
 //get all games
 router.get("/",(req,res) => {
+    const {q,genre,platform} = req.query;
+    let result = games;
+
+    if(q){
+        result = result.filter((game)=>
+            game.title.toLocaleLowerCase().includes(q.toLocaleLowerCase())
+        )
+    }
+
+    if(genre) {
+        result = result.filter((game)=>
+            game.genre.toLowerCase() === genre.toLocaleLowerCase()
+        )
+    }
+
+    if(platform){
+        result = result.filter((game)=>
+            game.platform.toLowerCase() === platform.toLocaleLowerCase()
+        )
+    }
+
     res.json({
         success : true,
-        count : games.length,
-        data : games
+        count : result.length,
+        data : result
     })
 })
-router.get("/search", (req,res) =>{
+router.get("/search", (req,res) => {
     const query = req.query.q;
     const result = games.filter((game) => 
     game.title.toLowerCase().includes(query.toLocaleLowerCase()))
