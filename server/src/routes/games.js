@@ -48,10 +48,24 @@ router.get("/",(req,res) => {
         )
     }
 
+    const page = Number(req.query.page) ||1;
+    const limit = Number(req.query.limit) || 10;
+     
+
+    const startIndex = (page -1)*limit;
+    const endIndex = startIndex + limit;
+
+
+    const paginatedGames = result.slice(startIndex,endIndex)
+
     res.json({
         success : true,
-        count : result.length,
-        data : result
+        count : paginatedGames.length,
+        total : result.length,
+        page,
+        limit,
+        totalPages : Math.ceil(result.length / limit),
+        data : paginatedGames
     })
 })
 router.get("/search", (req,res) => {
