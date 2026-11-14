@@ -52,6 +52,20 @@ router.get("/",(req,res) => {
         )
     }
 
+
+//SORTING 
+const {sortBy,order} = req.query;
+
+if(sortBy === "price" || sortBy === "id"){
+    result = [...result].sort((a,b) => {
+        if(order ==="desc"){
+            return b[sortBy] - a[sortBy]
+        }
+        return a[sortBy] - b[sortBy]
+    })
+}
+
+//pagination
     const page = Number(req.query.page) ||1;
     const limit = Number(req.query.limit) || 10;
      
