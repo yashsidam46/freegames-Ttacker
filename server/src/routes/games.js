@@ -33,6 +33,17 @@ router.get("/",(req,res) => {
         data : games
     })
 })
+router.get("/search", (req,res) =>{
+    const query = req.query.q;
+    const result = games.filter((game) => 
+    game.title.toLowerCase().includes(query.toLocaleLowerCase()))
+
+    res.json({
+        success : true,
+        count : result.length,
+        data : result
+    })
+})
 
 router.get("/:id", (req,res) => {
     const game = games.find(
@@ -50,6 +61,9 @@ router.get("/:id", (req,res) => {
         data : game
     })
 })
+
+
+
 
 export default router;
 
