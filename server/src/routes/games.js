@@ -63,6 +63,13 @@ if(sortBy === "price" || sortBy === "id"){
         }
         return a[sortBy] - b[sortBy]
     })
+
+}
+
+if(sortBy === "title"){
+    result = [...result].sort((a,b) =>{
+        return a.title.localeCompare(b.title)
+    })
 }
 
 //pagination
