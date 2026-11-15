@@ -206,6 +206,15 @@ router.get("/search", (req,res) => {
 })
 
 router.get("/:id", (req,res) => {
+const id = Number(req.params.id);
+
+if(!Number.isInteger(id) || id<1){
+    res.status(400).json({
+        success:false,
+        message : "Invalid Game Id"
+    })
+}
+
     const game = games.find(
         (g) => g.id === Number(req.params.id)
     )
