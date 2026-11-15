@@ -132,7 +132,9 @@ if(order && !["asc","desc"].includes(order)){
 }
 
 
-    const {q,genre,platform} = req.query;
+    const q = req.query.q?.trim();
+    const genre = req.query.genre?.trim().toUpperCase();
+    const platform = req.query.platform?.trim().toUpperCase();
     let result = games;
 
     if(q){
@@ -143,13 +145,13 @@ if(order && !["asc","desc"].includes(order)){
 
     if(genre) {
         result = result.filter((game)=>
-            game.genre.toLowerCase() === genre.toLocaleLowerCase()
+            game.genre.toUpperCase() === genre
         )
     }
 
     if(platform){
         result = result.filter((game)=>
-            game.platform.toLowerCase() === platform.toLocaleLowerCase()
+            game.platform.toUpperCase() === platform
         )
     }
 
