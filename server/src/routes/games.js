@@ -103,7 +103,7 @@ if(!Number.isInteger(page) || page<1){
     })
 }
 
-if(!Number.isInteger(limit) || limit <1){
+if(!Number.isInteger(limit) || limit <1 || limit >50){
     return res.status(400).json({
         success : false,
         message : "Limit must be between 1 to 50"
@@ -115,7 +115,7 @@ if(!Number.isInteger(limit) || limit <1){
 
 const {sortBy , order} = req.query;
 
-const allowedSortField  = ["id","price","tittle","genre"];
+const allowedSortField  = ["id","price","title","genre"];
 
 if(sortBy && !allowedSortField.includes(sortBy)){
     return res.status(400).json({
