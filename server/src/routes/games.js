@@ -3,31 +3,91 @@ import express from "express"
 const router = express.Router();
 
 const games = [
-  { 
-        id: 1,
-        title: "The Witcher 3",
-        genre: "RPG",
-        platform: "PC",
-        price: 0 
-        },
-{ id: 2,
-        title: "Grand Theft Auto V",
-        genre: "Action",
-        platform: "PC",
+      { 
+            id: 1,
+            title: "The Witcher 3",
+            genre: "RPG",
+            platform: "PC",
             price: 0 
+            },
+    { id: 2,
+            title: "Grand Theft Auto V",
+            genre: "Action",
+            platform: "PC",
+                price: 0 
+        },
+      { 
+      id: 3,
+       title: "Red Dead Redemption 2",
+        genre: "Adventure", 
+       platform: "PC",
+        price: 0 
     },
-  { id: 3, title: "Red Dead Redemption 2", genre: "Adventure", platform: "PC", price: 0 },
-  { id: 4, title: "Cyberpunk 2077", genre: "RPG", platform: "PC", price: 0 },
-  { id: 5, title: "Assassin's Creed Valhalla", genre: "Action", platform: "PC", price: 0 },
-  { id: 6, title: "Hogwarts Legacy", genre: "Adventure", platform: "PC", price: 0 },
-  { id: 7, title: "Elden Ring", genre: "RPG", platform: "PC", price: 0 },
-  { id: 8, title: "Forza Horizon 5", genre: "Racing", platform: "PC", price: 0 },
-  { id: 9, title: "Minecraft", genre: "Sandbox", platform: "PC", price: 0 },
-  { id: 10, title: "Far Cry 6", genre: "Action", platform: "PC", price: 0 },
-  { id: 11, title: "God of War", genre: "Adventure", platform: "PC", price: 0 },
-  { id: 12, title: "Doom Eternal", genre: "Action", platform: "PC", price: 0 }
+      { 
+      id: 4,
+       title: "Cyberpunk 2077",
+        genre: "RPG",
+         platform: "PC",
+          price: 0 
+      },
+      {
+       id: 5,
+        title: "Assassin's Creed Valhalla",
+         genre: "Action",
+          platform: "PC",
+           price: 0 
+       },
+      { 
+      id: 6,
+       title: "Hogwarts Legacy",
+        genre: "Adventure",
+         platform: "PC",
+          price: 0 
+      },
+      {
+       id: 7,
+        title: "Elden Ring",
+         genre: "RPG",
+          platform: "PC",
+           price: 0 
+       },
+      {
+       id: 8,
+        title: "Forza Horizon 5",
+         genre: "Racing",
+          platform: "PC",
+           price: 0 
+       },
+      { 
+      id: 9,
+       title: "Minecraft",
+        genre: "Sandbox",
+         platform: "PC",
+          price: 0 
+      },
+      { 
+      id: 10,
+       title: "Far Cry 6",
+        genre: "Action", 
+    platform: "PC", 
+    price: 0 
+    },
+      { 
+      id: 11
+    , title: "God of War",
+     genre: "Adventure",
+      platform: "PC",
+       price: 0 
+    },
+      {
+       id: 12,
+        title: "Doom Eternal",
+         genre: "Action",
+          platform: "PC",
+           price: 0 
+       }
 
-]
+    ]
 
 //get all games
 router.get("/",(req,res) => {
