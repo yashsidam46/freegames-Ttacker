@@ -91,6 +91,27 @@ const games = [
 
 //get all games
 router.get("/",(req,res) => {
+
+// PAGINATION VALIDATION
+const page = Number(req.query.page ?? 1);
+const limit = Number(req.query.limit ?? 10)
+
+if(!Number.isInteger(page) || page<1){
+    return res.status(400).json({
+        success:false,
+        message : "page muste be a positive integer"
+    })
+}
+
+if(!Number.isInteger(limit) || limit <1){
+    return res.status(400).json({
+        success : false,
+        message : "Limit must be between 1 to 50"
+
+    })
+}
+
+
     const {q,genre,platform} = req.query;
     let result = games;
 
@@ -133,8 +154,7 @@ if(sortBy === "title"){
 }
 
 //pagination
-    const page = Number(req.query.page) ||1;
-    const limit = Number(req.query.limit) || 10;
+   
      
 
     const startIndex = (page -1)*limit;
