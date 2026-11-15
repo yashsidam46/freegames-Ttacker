@@ -111,6 +111,26 @@ if(!Number.isInteger(limit) || limit <1){
     })
 }
 
+//VALIDATION SORTING 
+
+const {sortBy , order} = req.query;
+
+const allowedSortField  = ["id","price","tittle","genre"];
+
+if(sortBy && !allowedSortField.includes(sortBy)){
+    return res.status(400).json({
+        success:false,
+        message : "Invalid Sorting Field"
+    })
+}
+
+if(order && !["asc","desc"].includes(order)){
+    res.status(400).json({
+        success:false,
+        message : "Order must be Asc or Desc"
+    })
+}
+
 
     const {q,genre,platform} = req.query;
     let result = games;
@@ -135,7 +155,7 @@ if(!Number.isInteger(limit) || limit <1){
 
 
 //SORTING 
-const {sortBy,order} = req.query;
+//const {sortBy,order} = req.query;
 
 if(sortBy === "price" || sortBy === "id"){
     result = [...result].sort((a,b) => {
