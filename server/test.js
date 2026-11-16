@@ -1,17 +1,15 @@
 import dotenv from "dotenv";
-import { fetchEpicGames } from "./src/fetchers/epic.js";
-
 dotenv.config();
 
+import { fetchEpicGames } from "./src/fetchers/epic.js";
+
 const test = async () => {
-    try {
-        const data = await fetchEpicGames();
-
-        console.log(JSON.stringify(data, null, 2));
-
-    } catch (error) {
-        console.error("Error:", error.message);
-    }
+  try {
+    const data = await fetchEpicGames();
+    console.log(JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error("Error:", error.message);
+  }
 };
 
 test();

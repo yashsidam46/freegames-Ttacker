@@ -1,14 +1,17 @@
-const API_URL = process.env.EPIC_API_URL;
-
 export const fetchEpicGames = async () => {
-    const responce = await fetch(API_URL);
+  const API_URL = process.env.EPIC_API_URL;
 
-    if(!responce.ok){
-        throw new Error("Failed to fetch Epic Game Data")
-        
-    }
+  console.log("Epic API URL:", API_URL);
 
-    const data = await responce.json();
+  if (!API_URL) {
+    throw new Error("EPIC_API_URL is missing from .env");
+  }
 
-    return data;
-}
+  const response = await fetch(API_URL);
+
+  if (!response.ok) {
+    throw new Error(`Epic API request failed: ${response.status}`);
+  }
+
+  return await response.json();
+};
