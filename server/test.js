@@ -9,6 +9,24 @@ const test = async () => {
     const SearchStores = data.data.Catalog.searchStore;
 const offers = SearchStores.elements;
 
+console.log("\nPRICE AND PROMOTION DETAILS:");
+
+offers.forEach((offer) => {
+  console.log({
+    title: offer.title,
+    discountPrice: offer.price?.totalPrice?.discountPrice,
+    originalPrice: offer.price?.totalPrice?.originalPrice,
+    promotions: offer.promotions
+  });
+});
+const knightica = offers.find(
+  (offer) => offer.title === "Knightica"
+);
+
+console.log("\nKNIGHTICA PROMOTION:");
+console.log(
+  JSON.stringify(knightica.promotions, null, 2)
+);
     /*console.log("TOP LEVEL KEYS:");
 console.log(Object.keys(data));
 
