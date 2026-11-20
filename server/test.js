@@ -22,8 +22,12 @@ offers.forEach((offer) => {
 const knightica = offers.find(
   (offer) => offer.title === "Knightica"
 );
+const activePromotion =
+  knightica.promotions.promotionalOffers[0].promotionalOffers[0];
 
-console.log("\nKNIGHTICA PROMOTION:");
+console.log("\nACTUAL PROMOTION:");
+console.log(activePromotion);
+
 console.log(
   JSON.stringify(knightica.promotions, null, 2)
 );
@@ -42,6 +46,16 @@ console.log("\n Total Offers : ",offers.length);
 
 console.log("\nFIRST OFFER:");
 console.log(JSON.stringify(offers[0], null, 2));
+
+const activeFreeGmaes = offer.filter((offer) => {
+  const isPriceZero = offer.price?.totalPrice?.discountPrice === 0;
+  const hasActivePromo = offer.price?.promotions?.promotionalOffers?.length > 0;
+
+  return isPriceZero && hasActivePromo;
+})
+console.log("\n TOTAL OFFERS FETCHED : ",offers.length);
+console.log("\n ACTIVE FREE GAMES : ",activeFreeGmaes.length);
+
 
 
   } catch (error) {
