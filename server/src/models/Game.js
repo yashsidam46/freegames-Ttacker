@@ -2,8 +2,15 @@ import mongoose from "mongoose";
 
 const gameSchema = new mongoose.Schema(
     {
-        // Epic's internal unique ID for this offer
-        epicId: {
+        // ── OLD (Epic-only unique key) — commented out, replaced by externalId ──
+        // epicId: {
+        //     type: String,
+        //     required: true,
+        //     unique: true,
+        // },
+
+        // Generic unique key across all sources: "epic_<id>", "gamerpower_<id>", etc.
+        externalId: {
             type: String,
             required: true,
             unique: true,
@@ -20,13 +27,13 @@ const gameSchema = new mongoose.Schema(
             default: "",
         },
 
-        // Best available cover image from Epic's keyImages array
+        // Cover image URL
         image: {
             type: String,
             default: "",
         },
 
-        // Prices are stored in cents (as Epic returns them)
+        // Prices in cents (Epic) or 0 (already free from GamerPower)
         originalPrice: {
             type: Number,
             default: 0,
@@ -37,18 +44,19 @@ const gameSchema = new mongoose.Schema(
             default: 0,
         },
 
-        // Human-readable formatted price e.g. "$59.99"
+        // Human-readable price string e.g. "$59.99" or "Free"
         formattedOriginalPrice: {
             type: String,
             default: "Free",
         },
 
-        // Direct link to the Epic Games store page
+        // Direct store link
         storeUrl: {
             type: String,
             default: "",
         },
 
+        // Which store this came from: "Epic Games", "Steam", "GOG", "itch.io", etc.
         source: {
             type: String,
             default: "Epic Games",
@@ -82,14 +90,15 @@ const gameSchema = new mongoose.Schema(
         },
     },
     {
-        timestamps: true, // adds createdAt and updatedAt automatically
+        timestamps: true,
     }
 );
 
-// Index for fast search and sorting
+// Indexes for fast lookup
 gameSchema.index({ title: "text", description: "text" });
 gameSchema.index({ promotionEnd: 1 });
 gameSchema.index({ isFree: 1 });
+gameSchema.index({ source: 1 });
 
 const Game = mongoose.model("Game", gameSchema);
 

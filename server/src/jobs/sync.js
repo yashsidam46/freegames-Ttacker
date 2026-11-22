@@ -1,14 +1,15 @@
 import cron from "node-cron";
 import { fetchEpicGames } from "../fetchers/epic.js";
+import { fetchGamerPowerGames, detectSource } from "../fetchers/gamerpower.js";
 import Game from "../models/Game.js";
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────
 
 /**
  * Pick the best available cover image from Epic's keyImages array.
- * Priority: Thumbnail > DieselStoreFrontWide > OfferImageWide > first available
+ * Priority: Thumbnail > DieselStoreFrontWide > OfferImageWide > first item
  */
-const pickImage = (keyImages = []) => {
+const pickEpicImage = (keyImages = []) => {
     const priority = [
         "Thumbnail",
         "DieselStoreFrontWide",
@@ -16,118 +17,170 @@ const pickImage = (keyImages = []) => {
         "DieselGameBoxWide",
         "OfferImageTall",
     ];
-
     for (const type of priority) {
         const found = keyImages.find((img) => img.type === type);
         if (found?.url) return found.url;
     }
-
-    // Fallback: just grab whatever is first
     return keyImages?.[0]?.url || "";
 };
 
 /**
  * Build the Epic Games store URL from the offer object.
- * Uses productSlug or the catalog namespace page slug.
  */
-const buildStoreUrl = (offer) => {
+const buildEpicStoreUrl = (offer) => {
     const slug =
         offer.productSlug ||
         offer.catalogNs?.mappings?.[0]?.pageSlug ||
         "";
-
     if (!slug) return "https://store.epicgames.com/en-US/free-games";
     return `https://store.epicgames.com/en-US/p/${slug}`;
 };
 
-// ─── CORE SYNC FUNCTION ────────────────────────────────────────────────────
+// ─── EPIC SYNC ─────────────────────────────────────────────────────────────
 
-export const syncEpicGames = async () => {
-    console.log("🔄 [Sync] Starting Epic Games sync…");
+const syncEpicDirect = async () => {
+    console.log("🔄 [Epic] Fetching direct from Epic Games API…");
 
-    try {
-        // 1. Fetch raw data from Epic API
-        const data = await fetchEpicGames();
-        const offers = data?.data?.Catalog?.searchStore?.elements || [];
+    const data   = await fetchEpicGames();
+    const offers = data?.data?.Catalog?.searchStore?.elements || [];
 
-        console.log(`📦 [Sync] Total offers fetched from Epic: ${offers.length}`);
+    console.log(`📦 [Epic] ${offers.length} total offers received`);
 
-        // 2. Apply YOUR filter logic (from test.js):
-        //    - discountPrice must be 0  (game is free)
-        //    - promotionalOffers must have active entries (promotion is live right now)
-        const activeFreeGames = offers.filter((offer) => {
-            const isPriceZero = offer.price?.totalPrice?.discountPrice === 0;
-            const hasActivePromo = offer.promotions?.promotionalOffers?.length > 0;
+    // YOUR original filter logic from test.js:
+    // discountPrice === 0  AND  promotionalOffers array is non-empty (promo is live)
+    const activeFreeGames = offers.filter((offer) => {
+        const isPriceZero   = offer.price?.totalPrice?.discountPrice === 0;
+        const hasActivePromo = offer.promotions?.promotionalOffers?.length > 0;
+        return isPriceZero && hasActivePromo;
+    });
 
-            return isPriceZero && hasActivePromo;
-        });
+    console.log(`🎮 [Epic] ${activeFreeGames.length} currently free games`);
 
-        console.log(`🎮 [Sync] Active free games found: ${activeFreeGames.length}`);
+    return activeFreeGames.map((offer) => {
+        const activePromo =
+            offer.promotions?.promotionalOffers?.[0]?.promotionalOffers?.[0];
 
-        if (activeFreeGames.length === 0) {
-            console.log("ℹ️  [Sync] No active free games right now. DB not modified.");
-            return;
+        return {
+            externalId:            `epic_${offer.id}`,
+            title:                 offer.title,
+            description:           offer.description || "",
+            image:                 pickEpicImage(offer.keyImages),
+            originalPrice:         offer.price?.totalPrice?.originalPrice ?? 0,
+            discountPrice:         0,
+            formattedOriginalPrice:
+                offer.price?.totalPrice?.fmtPrice?.originalPrice || "Free",
+            storeUrl:              buildEpicStoreUrl(offer),
+            source:                "Epic Games",
+            platform:              "PC",
+            promotionStart:        activePromo?.startDate ? new Date(activePromo.startDate) : null,
+            promotionEnd:          activePromo?.endDate   ? new Date(activePromo.endDate)   : null,
+            isFree:                true,
+            fetchedAt:             new Date(),
+        };
+    });
+};
+
+// ─── GAMERPOWER SYNC ───────────────────────────────────────────────────────
+
+const syncGamerPower = async () => {
+    console.log("🔄 [GamerPower] Fetching from GamerPower API…");
+
+    const giveaways = await fetchGamerPowerGames(); // already filtered to Active
+
+    return giveaways.map((item) => ({
+        externalId:            `gamerpower_${item.id}`,
+        title:                 item.title,
+        description:           item.description || "",
+        image:                 item.image || item.thumbnail || "",
+        originalPrice:         0,
+        discountPrice:         0,
+        formattedOriginalPrice: item.worth && item.worth !== "N/A" ? item.worth : "Free",
+        storeUrl:              item.open_giveaway || item.gamerpower_url || "",
+        source:                detectSource(item.platforms, item.open_giveaway || ""),
+        platform:              "PC",
+        promotionStart:        null,
+        promotionEnd:          item.end_date && item.end_date !== "N/A"
+                                   ? new Date(item.end_date)
+                                   : null,
+        isFree:                true,
+        fetchedAt:             new Date(),
+    }));
+};
+
+// ─── MASTER SYNC ──────────────────────────────────────────────────────────
+
+export const syncAllGames = async () => {
+    console.log("\n════════════════════════════════════════");
+    console.log("🚀 [Sync] Starting full sync…");
+    console.log("════════════════════════════════════════");
+
+    const results = await Promise.allSettled([
+        syncEpicDirect(),
+        syncGamerPower(),
+    ]);
+
+    // Collect all games from both sources
+    const allGames = [];
+
+    results.forEach((result, i) => {
+        const source = i === 0 ? "Epic (direct)" : "GamerPower";
+        if (result.status === "fulfilled") {
+            console.log(`✅ [${source}] ${result.value.length} games ready to upsert`);
+            allGames.push(...result.value);
+        } else {
+            console.error(`❌ [${source}] Failed: ${result.reason?.message}`);
         }
+    });
 
-        // 3. Map each filtered offer to our Game schema shape
-        const upsertOps = activeFreeGames.map((offer) => {
-            const activePromo =
-                offer.promotions?.promotionalOffers?.[0]?.promotionalOffers?.[0];
-
-            const gameData = {
-                epicId:               offer.id,
-                title:                offer.title,
-                description:          offer.description || "",
-                image:                pickImage(offer.keyImages),
-                originalPrice:        offer.price?.totalPrice?.originalPrice ?? 0,
-                discountPrice:        offer.price?.totalPrice?.discountPrice ?? 0,
-                formattedOriginalPrice:
-                    offer.price?.totalPrice?.fmtPrice?.originalPrice || "Free",
-                storeUrl:             buildStoreUrl(offer),
-                source:               "Epic Games",
-                platform:             "PC",
-                promotionStart:       activePromo?.startDate
-                    ? new Date(activePromo.startDate)
-                    : null,
-                promotionEnd:         activePromo?.endDate
-                    ? new Date(activePromo.endDate)
-                    : null,
-                isFree:               true,
-                fetchedAt:            new Date(),
-            };
-
-            return {
-                updateOne: {
-                    filter: { epicId: offer.id },     // match by Epic's unique ID
-                    update: { $set: gameData },        // update all fields
-                    upsert: true,                      // insert if doesn't exist
-                },
-            };
-        });
-
-        // 4. Bulk upsert into MongoDB
-        const result = await Game.bulkWrite(upsertOps);
-
-        console.log(
-            `✅ [Sync] Done. Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}`
-        );
-    } catch (error) {
-        console.error("❌ [Sync] Failed:", error.message);
+    if (allGames.length === 0) {
+        console.log("⚠️  [Sync] No games to save. DB unchanged.");
+        return { upserted: 0, modified: 0, total: 0 };
     }
+
+    // Deduplicate by externalId (Epic direct + GamerPower can overlap)
+    const seen    = new Set();
+    const unique  = allGames.filter((g) => {
+        if (seen.has(g.externalId)) return false;
+        seen.add(g.externalId);
+        return true;
+    });
+
+    console.log(`💾 [Sync] Upserting ${unique.length} unique games into MongoDB…`);
+
+    // Bulk upsert — insert new, update existing
+    const ops = unique.map((gameData) => ({
+        updateOne: {
+            filter: { externalId: gameData.externalId },
+            update: { $set: gameData },
+            upsert: true,
+        },
+    }));
+
+    const result = await Game.bulkWrite(ops);
+
+    console.log(
+        `✅ [Sync] Complete — Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}, Total in batch: ${unique.length}`
+    );
+    console.log("════════════════════════════════════════\n");
+
+    return {
+        upserted: result.upsertedCount,
+        modified: result.modifiedCount,
+        total:    unique.length,
+    };
 };
 
 // ─── CRON SCHEDULE ─────────────────────────────────────────────────────────
 
 /**
- * Run sync every hour at minute 0.
- * Epic free games typically refresh weekly on Thursdays,
- * but we poll hourly to catch any changes quickly.
+ * Run a full sync every hour at minute 0.
+ * Epic refreshes weekly on Thursdays; GamerPower picks up new drops faster.
  */
 export const startSyncJob = () => {
     console.log("⏰ [Sync] Cron job registered — runs every hour.");
 
     cron.schedule("0 * * * *", async () => {
-        console.log(`\n⏰ [Sync] Cron triggered at ${new Date().toISOString()}`);
-        await syncEpicGames();
+        console.log(`\n⏰ [Sync] Hourly cron triggered at ${new Date().toISOString()}`);
+        await syncAllGames();
     });
 };
