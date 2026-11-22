@@ -165,7 +165,7 @@ async function fetchGames() {
 
     // Update stats
     els.statTotal.textContent = state.games.length;
-    const freeCount = state.games.filter(g => g.price === 0).length;
+    const freeCount = state.games.filter(g => g.isFree ?? (g.discountPrice === 0)).length;
     els.statFree.textContent = freeCount;
 
     buildGenreChips();
@@ -323,7 +323,7 @@ function createGameCard(game, index) {
   card.setAttribute('role', 'listitem');
   card.tabIndex = 0;
 
-  const isFree = game.price === 0;
+  const isFree = game.isFree ?? (game.discountPrice === 0) ?? (game.price === 0);
   const emoji  = GAME_EMOJIS[game.genre] || '🎮';
   const genreClass = GENRE_CLASSES[game.genre] || 'genre-default';
   const platform = game.platform || 'PC';
@@ -333,9 +333,17 @@ function createGameCard(game, index) {
 
   card.innerHTML = `
     <div class="card-cover">
-      <div class="card-cover-placeholder ${genreClass}">
-        ${emoji}
-      </div>
+      ${game.image
+        ? `<img
+            class="card-cover-img"
+            src="${escHtml(game.image)}"
+            alt="${escHtml(game.title)} cover art"
+            loading="lazy"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+           />
+           <div class="card-cover-placeholder ${genreClass}" style="display:none">${emoji}</div>`
+        : `<div class="card-cover-placeholder ${genreClass}">${emoji}</div>`
+      }
       <div class="card-cover-gradient"></div>
       ${isFree ? `<div class="card-free-badge">🎁 FREE</div>` : ''}
       <span class="card-platform-badge ${platformClass}">${platformLabel}</span>
@@ -350,9 +358,9 @@ function createGameCard(game, index) {
       <div class="card-price-row">
         <div>
           <div class="card-price ${isFree ? '' : 'paid'}">
-            ${isFree ? 'FREE' : `$${game.price.toFixed(2)}`}
+            ${isFree ? 'FREE' : `$${Number(game.discountPrice || game.price || 0).toFixed(2)}`}
           </div>
-          ${isFree && game.originalPrice ? `<div class="card-original-price">$${game.originalPrice.toFixed(2)}</div>` : ''}
+          ${(isFree && game.originalPrice) ? `<div class="card-original-price">${game.formattedOriginalPrice || '$' + (game.originalPrice / 100).toFixed(2)}</div>` : ''}
         </div>
         ${isFree
           ? `<button class="card-claim-btn" aria-label="Claim ${escHtml(game.title)}">🎁 Claim</button>`
@@ -379,7 +387,7 @@ function createGameCard(game, index) {
 
 /* ── MODAL ────────────────────────────────────── */
 function openModal(game) {
-  const isFree = game.price === 0;
+  const isFree = game.isFree ?? (game.discountPrice === 0) ?? (game.price === 0);
   const emoji  = GAME_EMOJIS[game.genre] || '🎮';
   const genreClass = GENRE_CLASSES[game.genre] || 'genre-default';
   const platformLabel = normalizePlatform(game.platform || 'PC');
@@ -388,7 +396,17 @@ function openModal(game) {
 
   // Cover
   els.modalCover.className = `modal-cover ${genreClass}`;
-  els.modalCover.innerHTML = `<span style="font-size:5rem">${emoji}</span>`;
+  if (game.image) {
+    els.modalCover.innerHTML = `
+      <img
+        src="${escHtml(game.image)}"
+        alt="${escHtml(game.title)} cover art"
+        style="width:100%;height:100%;object-fit:cover;display:block"
+        onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\'font-size:5rem\'>${emoji}</span>'"
+      />`;
+  } else {
+    els.modalCover.innerHTML = `<span style="font-size:5rem">${emoji}</span>`;
+  }
 
   // Badges
   els.modalBadges.innerHTML = `
@@ -409,8 +427,8 @@ function openModal(game) {
 
   // Price
   els.modalPrice.innerHTML = `
-    <span class="modal-price-free">${isFree ? 'FREE' : `$${(game.price||0).toFixed(2)}`}</span>
-    ${game.originalPrice ? `<span class="modal-price-original">$${game.originalPrice.toFixed(2)}</span>` : ''}
+    <span class="modal-price-free">${isFree ? 'FREE' : `$${Number(game.discountPrice || game.price || 0).toFixed(2)}`}</span>
+    ${game.originalPrice ? `<span class="modal-price-original">${game.formattedOriginalPrice || '$' + (game.originalPrice / 100).toFixed(2)}</span>` : ''}
   `;
 
   // Claim button
