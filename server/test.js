@@ -10,7 +10,13 @@ const test = async () => {
 const offers = SearchStores.elements;
 
 console.log("\nPRICE AND PROMOTION DETAILS:");
+const activeFreeGames = offers.filter((offer) => {
+      const isPriceZero = offer.price?.totalPrice?.discountPrice === 0;
+      const hasActivePromo = offer.promotions?.promotionalOffers?.length > 0;
+      
+      return isPriceZero && hasActivePromo;
 
+})
 offers.forEach((offer) => {
   console.log({
     title: offer.title,
@@ -19,7 +25,7 @@ offers.forEach((offer) => {
     promotions: offer.promotions
   });
 });
-const knightica = offers.find(
+/*const knightica = offers.find(
   (offer) => offer.title === "Knightica"
 );
 const activePromotion =
@@ -30,7 +36,7 @@ console.log(activePromotion);
 
 console.log(
   JSON.stringify(knightica.promotions, null, 2)
-);
+); */
     /*console.log("TOP LEVEL KEYS:");
 console.log(Object.keys(data));
 
@@ -47,14 +53,14 @@ console.log("\n Total Offers : ",offers.length);
 console.log("\nFIRST OFFER:");
 console.log(JSON.stringify(offers[0], null, 2));
 
-const activeFreeGmaes = offer.filter((offer) => {
-  const isPriceZero = offer.price?.totalPrice?.discountPrice === 0;
-  const hasActivePromo = offer.price?.promotions?.promotionalOffers?.length > 0;
+//const activeFreeGmaes = offer.filter((offer) => {
+  //const isPriceZero = offer.price?.totalPrice?.discountPrice === 0;
+  //nst hasActivePromo = offer.price?.promotions?.promotionalOffers?.length > 0;
 
-  return isPriceZero && hasActivePromo;
-})
+  //return isPriceZero && hasActivePromo;
+//})
 console.log("\n TOTAL OFFERS FETCHED : ",offers.length);
-console.log("\n ACTIVE FREE GAMES : ",activeFreeGmaes.length);
+console.log("\n ACTIVE FREE GAMES : ",activeFreeGames.length);
 
 
 
