@@ -1,7 +1,12 @@
 import express from "express"
+import Game from "../models/Game.js";
 
 const router = express.Router();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// YOUR ORIGINAL HARDCODED DATA — commented out, not deleted
+// ─────────────────────────────────────────────────────────────────────────────
+/*
 const games = [
     {
         id: 1,
@@ -100,7 +105,12 @@ const games = [
         image: "https://cdn.akamai.steamstatic.com/steam/apps/782330/header.jpg"
     }
 ]
+*/
 
+// ─────────────────────────────────────────────────────────────────────────────
+// YOUR ORIGINAL ROUTE LOGIC — commented out, not deleted
+// ─────────────────────────────────────────────────────────────────────────────
+/*
 //get all games
 router.get("/",(req,res) => {
 
@@ -119,11 +129,10 @@ if(!Number.isInteger(limit) || limit <1 || limit >50){
     return res.status(400).json({
         success : false,
         message : "Limit must be between 1 to 50"
-
     })
 }
 
-//VALIDATION SORTING 
+//VALIDATION SORTING
 
 const {sortBy , order} = req.query;
 
@@ -142,7 +151,6 @@ if(order && !["asc","desc"].includes(order)){
         message : "Order must be Asc or Desc"
     })
 }
-
 
     const q = req.query.q?.trim();
     const genre = req.query.genre?.trim().toUpperCase();
@@ -168,7 +176,7 @@ if(order && !["asc","desc"].includes(order)){
     }
 
 
-//SORTING 
+//SORTING
 //const {sortBy,order} = req.query;
 
 if(sortBy === "price" || sortBy === "id"){
@@ -182,18 +190,15 @@ if(sortBy === "price" || sortBy === "id"){
 }
 
 if(sortBy === "title"){
-    result = [...result].sort((a,b) =>{
+    result = [...result].sort((a,b)=>{
         return a.title.localeCompare(b.title)
     })
 }
 
 //pagination
-   
-     
 
     const startIndex = (page -1)*limit;
     const endIndex = startIndex + limit;
-
 
     const paginatedGames = result.slice(startIndex,endIndex)
 
@@ -207,9 +212,10 @@ if(sortBy === "title"){
         data : paginatedGames
     })
 })
+
 router.get("/search", (req,res) => {
     const query = req.query.q;
-    const result = games.filter((game) => 
+    const result = games.filter((game) =>
     game.title.toLowerCase().includes(query.toLocaleLowerCase()))
 
     res.json({
@@ -220,14 +226,14 @@ router.get("/search", (req,res) => {
 })
 
 router.get("/:id", (req,res) => {
-const id = Number(req.params.id);
+    const id = Number(req.params.id);
 
-if(!Number.isInteger(id) || id<1){
-    res.status(400).json({
-        success:false,
-        message : "Invalid Game Id"
-    })
-}
+    if(!Number.isInteger(id) || id<1){
+        res.status(400).json({
+            success:false,
+            message : "Invalid Game Id"
+        })
+    }
 
     const game = games.find(
         (g) => g.id === Number(req.params.id)
@@ -244,9 +250,108 @@ if(!Number.isInteger(id) || id<1){
         data : game
     })
 })
+*/
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW: MongoDB-backed routes
+// ─────────────────────────────────────────────────────────────────────────────
 
+// GET /api/games
+// Supports: ?page= &limit= &sortBy= &order= &q= &platform=
+router.get("/", async (req, res) => {
 
+    // PAGINATION
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+
+    // SORTING — allowed fields map to MongoDB document fields
+    const allowedSortFields = {
+        title:      "title",
+        price:      "originalPrice",
+        date:       "promotionEnd",
+        fetchedAt:  "fetchedAt",
+    };
+
+    const { sortBy, order } = req.query;
+
+    if (sortBy && !allowedSortFields[sortBy]) {
+        return res.status(400).json({
+            success: false,
+            message: `Invalid sortBy. Allowed: ${Object.keys(allowedSortFields).join(", ")}`,
+        });
+    }
+
+    if (order && !["asc", "desc"].includes(order)) {
+        return res.status(400).json({
+            success: false,
+            message: "Order must be 'asc' or 'desc'",
+        });
+    }
+
+    // FILTERS
+    const filter = { isFree: true }; // Always show only free games
+
+    const q        = req.query.q?.trim();
+    const platform = req.query.platform?.trim();
+
+    if (q) {
+        // Case-insensitive title search
+        filter.title = { $regex: q, $options: "i" };
+    }
+
+    if (platform) {
+        filter.platform = { $regex: platform, $options: "i" };
+    }
+
+    try {
+        const sortField = allowedSortFields[sortBy] || "fetchedAt";
+        const sortDir   = order === "asc" ? 1 : -1;
+
+        const total = await Game.countDocuments(filter);
+        const games = await Game.find(filter)
+            .sort({ [sortField]: sortDir })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .lean(); // plain JS objects — faster than Mongoose documents
+
+        res.json({
+            success:    true,
+            count:      games.length,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            data:       games,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch games from database",
+            error:   error.message,
+        });
+    }
+});
+
+// GET /api/games/:id  — fetch single game by MongoDB _id
+router.get("/:id", async (req, res) => {
+    try {
+        const game = await Game.findById(req.params.id).lean();
+
+        if (!game) {
+            return res.status(404).json({
+                success: false,
+                message: "Game not found",
+            });
+        }
+
+        res.json({ success: true, data: game });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: "Invalid game ID",
+            error:   error.message,
+        });
+    }
+});
 
 export default router;
-
