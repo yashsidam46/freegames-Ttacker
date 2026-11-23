@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 import gamesRouter from "./src/routes/games.js";
 import authRouter  from "./src/routes/auth.js";
 import connectDB   from "./src/db.js";

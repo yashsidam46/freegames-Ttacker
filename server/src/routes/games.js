@@ -1,5 +1,6 @@
-import express from "express"
+import express from "express";
 import Game from "../models/Game.js";
+import { syncAllGames } from "../jobs/sync.js";
 
 const router = express.Router();
 
@@ -293,14 +294,18 @@ router.get("/", async (req, res) => {
 
     const q        = req.query.q?.trim();
     const platform = req.query.platform?.trim();
+    const source   = req.query.source?.trim();   // e.g. "Epic Games", "Steam"
 
     if (q) {
-        // Case-insensitive title search
         filter.title = { $regex: q, $options: "i" };
     }
 
     if (platform) {
         filter.platform = { $regex: platform, $options: "i" };
+    }
+
+    if (source) {
+        filter.source = { $regex: source, $options: "i" };
     }
 
     try {
@@ -329,6 +334,35 @@ router.get("/", async (req, res) => {
             message: "Failed to fetch games from database",
             error:   error.message,
         });
+    }
+});
+
+// POST /api/games/sync — manually trigger a full re-sync (no auth needed for now)
+router.post("/sync", async (req, res) => {
+    try {
+        console.log("🔁 [Manual Sync] Triggered via POST /api/games/sync");
+        const result = await syncAllGames();
+        res.json({
+            success: true,
+            message: "Sync complete",
+            ...result,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Sync failed",
+            error: error.message,
+        });
+    }
+});
+
+// GET /api/games/sources — list all unique sources in DB
+router.get("/sources", async (req, res) => {
+    try {
+        const sources = await Game.distinct("source", { isFree: true });
+        res.json({ success: true, data: sources });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
